@@ -67,10 +67,23 @@ namespace Server
             string ID = iPacket.ReadString();
             string PWD = iPacket.ReadString();
 
-            Log.Info("ID: {0} PWD: {0}", ID, PWD);
+            Log.Info("ID: {0} PWD: {1} GUID: {2}", ID, PWD, GUID);
+
+            int accountIDX = Database.Database.Select<int>("accountDB", "userID = '{0}' AND userPWD = '{1}'", ID, PWD);
+            
             OutPacket o = new OutPacket(STPK_HELLO);
-            o.Write(true);
-            o.Write(GUID);
+
+            if (accountIDX == -1)
+            {
+                o.Write(false);
+                o.Write("Reason: ");
+            }
+            else
+            {
+                o.Write(true);
+                o.Write(GUID);
+            }
+
             Send(o);
         }
     }
