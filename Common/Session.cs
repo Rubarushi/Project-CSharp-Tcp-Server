@@ -18,10 +18,39 @@ namespace Common
         public byte[] mBuffer = new byte[5000];
 
         public int mOffset = 0;
+        private SocketAsyncEventArgs mWriteArgs;
         public void SetSocket(Socket socket)
         {
             Socket = socket;
             IP = Socket.RemoteEndPoint.ToString();
+            mWriteArgs = new SocketAsyncEventArgs();
+            mWriteArgs.DisconnectReuseSocket = false;
+            mWriteArgs.Completed += delegate (object s, SocketAsyncEventArgs a)
+            {
+                EndSend(a);
+            };
+        }
+
+        private void EndSend(SocketAsyncEventArgs a)
+        {
+            if (mDisconnected != 0)
+                return;
+
+            TryCatch(() => 
+            {
+                if(a.BytesTransferred <= 0)
+                {
+                    if(a.SocketError != SocketError.Success)
+                    {
+
+                    }
+                    Disconnect();
+                }
+                else
+                {
+
+                }
+            });
         }
 
         public Session()
@@ -146,7 +175,7 @@ namespace Common
 
         public void Append(byte[] pBuffer, int pStart, int pLength)
         {
-            try
+            TryCatch( () => 
             {
                 if (mBuffer.Length - mCursor < pLength)
                 {
@@ -156,12 +185,9 @@ namespace Common
                 }
                 Buffer.BlockCopy(pBuffer, pStart, mBuffer, mCursor, pLength);
                 mCursor += pLength;
-            }
-            catch
-            {
-
-            }
+            });
         }
+
         public void Send(OutPacket oPacket)
         {
             if (mDisconnected != 0) return;

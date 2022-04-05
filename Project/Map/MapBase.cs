@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace Server.Map
 {
@@ -17,13 +11,25 @@ namespace Server.Map
         public int MaxClient { get; set; } = 10;
         public int NowClient => JoinedClients.Count;
 
-        public BlockingCollection<Client> JoinedClients = new BlockingCollection<Client>();
+        public SynchronizedCollection<Client> JoinedClients = new SynchronizedCollection<Client>();
 
         public static List<MapBase> Maps = new List<MapBase>();
 
         public void AddClient(Client client)
         {
             JoinedClients.Add(client);
+        }
+
+        public void RemoveClient(Client c)
+        {
+            if (JoinedClients.Contains(c))
+            {
+                JoinedClients.Remove(c);
+            }
+        }
+        public SynchronizedCollection<Client> GetClients()
+        {
+            return JoinedClients;
         }
     }
 }
