@@ -1,50 +1,51 @@
 ﻿using Common;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Server.Network
 {
-    public class Acceptor
-    {
-        private TcpListener Listener;
-        public SynchronizedCollection<Client> m_vClient = new SynchronizedCollection<Client>();
-        private int port = 0;
+	public class Acceptor
+	{
+		private TcpListener Listener;
+		public object _lock = new object();
+		public List<Client> m_vClient = new List<Client>();
+		private int port = 0;
 
-        public Acceptor(int port)
-        {
-            this.port = port;
-            Listener = new TcpListener(System.Net.IPAddress.Any, port);
-        }
+		public Acceptor( int port )
+		{
+			this.port = port;
+			Listener = new TcpListener( System.Net.IPAddress.Any, port );
+		}
 
-        public void StartWork()
-        {
-            Log.Info("New Acceptor Ready on {0}", port);
-            Listener.Start();
-            Listener.BeginAcceptSocket(new AsyncCallback(OnAccept), null);
-        }
+		public void StartWork()
+		{
+			Console.WriteLine( "New Acceptor Ready on {0}", port );
+			Listener.Start();
+			Listener.BeginAcceptSocket( new AsyncCallback( OnAccept ), null );
+		}
 
-        private void OnAccept(IAsyncResult ar)
-        {
-            if (Server.m_bStopped)
-            {
-                Listener.Stop();
-                return;
-            }
+		private void OnAccept( IAsyncResult ar )
+		{
+			if( Server.m_bStopped )
+			{
+				Listener.Stop();
+				return;
+			}
 
-            Socket Socket = Listener.EndAcceptSocket(ar);
+			Socket Socket = Listener.EndAcceptSocket(ar);
 
-            Log.Info("New Client Joined {0}", Socket.RemoteEndPoint.ToString());
+			Console.WriteLine( "New Client Joined {0}", Socket.RemoteEndPoint.ToString() );
 
-            Client client = new Client(Socket);
-            client.BeginReceive();
+			Client client = new Client(Socket);
+			client.BeginReceive();
 
-            m_vClient.Add(client);
+			lock( Server.Acceptor._lock )
+			{
+				m_vClient.Add( client );
+			}
 
-            Listener.BeginAcceptSocket(new AsyncCallback(OnAccept), null);
-        }
-    }
+			Listener.BeginAcceptSocket( new AsyncCallback( OnAccept ), null );
+		}
+	}
 }

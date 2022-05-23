@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Common.IO.StreamSet">
+    <Position X="7.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAABAAAA=</HashCode>
+      <FileName>IO\AsyncStream.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.IO.AsyncStream">
+    <Position X="9.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAAAAAAAAAAAAAAAAAAAAQAAAAAAEAAAA=</HashCode>
+      <FileName>IO\AsyncStream.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.ConsoleContents">
+    <Position X="7.5" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAIAAAAAAAEAAAAAAIAAAAAIAAAAAA=</HashCode>
+      <FileName>IO\Log.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Log">
+    <Position X="9.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAYAABAAAABAAAAAAAAAAAABAAMAAAAA=</HashCode>
+      <FileName>IO\Log.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Protocol">
+    <Position X="5.5" Y="0.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAABAAEAAAAAAAAAAAAAgACAAAAAAAAAAAQAAQ=</HashCode>
+      <FileName>Protocol.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.WorkerThread">
+    <Position X="9.25" Y="5.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAgABAAIAIAAAEAAAAAAAQAAAAAAAIAAAAAAAAAADA=</HashCode>
+      <FileName>Thread\WorkerThread.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Network.InPacket" BaseTypeListCollapsed="true">
+    <Position X="11" Y="3.75" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAQAAiAAAAAEAAAQAAAIAIAAAUAAAAAAQABAQAA=</HashCode>
+      <FileName>Network\InPacket.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Common.Network.OutPacket" BaseTypeListCollapsed="true">
+    <Position X="11" Y="0.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAADAAAAAAAIAAAAAAAAAAQAAAAAAAAAFAQAA=</HashCode>
+      <FileName>Network\OutPacket.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Common.Network.Session">
+    <Position X="5.5" Y="3.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AARAAAAAAAABCACAAMYABgAAIAAAAQAAAAAAAoAABAA=</HashCode>
+      <FileName>Session.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Enum Name="Common.LogLevel">
+    <Position X="7.5" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAABgAEAAAAAAAAIEAAAAgAAAAAAAAAABIAAAAA=</HashCode>
+      <FileName>IO\Log.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="맑은 고딕" Size="9" />
+</ClassDiagram>

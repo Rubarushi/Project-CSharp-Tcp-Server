@@ -49,11 +49,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="ClientDiagram.cd" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Action\" />
-    <Folder Include="IO\Log\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">
       <Project>{d9e1be3e-2f1f-4c79-94d5-e41f17dd66a0}</Project>

@@ -7,123 +7,150 @@ using System.Net.Sockets;
 
 namespace Server
 {
-    public class Client : Session
-    {
-        public string nickName { get; private set; }
-        public MapBase Map { get; private set; } = null;
+	public class Client : Session
+	{
 
-        public Client(Socket Socket) : base()
-        {
-            SetSocket(Socket);
-        }
+		public Client( Socket Socket ) : base()
+		{
+			SetSocket( Socket );
+		}
 
-        public override void OnDisconnect()
-        {
-            Log.Info("Disconnected: {0}", IP);
-        }
+		public bool OnDisconnectCalled = false;
 
-        public override void OnPacket(int protocolID, InPacket iPacket)
-        {
-            TryCatch(() =>
-               {
-                   switch (protocolID)
-                   {
-                       case CTPK_HELLO:
-                           OnHello(iPacket);
-                           break;
-                       case CTPK_MOVE_MAP:
-                           OnMoveMap(iPacket);
-                           break;
-                       case CTPK_DISCONNECT:
-                           OnDisconnectPrepare();
-                           break;
-                       default:
-                           Log.Warning("Unknown Packet: {0}", protocolID);
-                           break;
-                   }
-               });
-        }
+		public override void OnDisconnect()
+		{
+			if( OnDisconnectCalled == false )
+			{
+				lock( Server.Acceptor._lock )
+				{
+					Server.Acceptor.m_vClient.Remove( this );
+				}
+				Console.WriteLine( "Disconnected: {0}", IP );
+				OnDisconnectCalled = true;
+			}
+		}
 
-        private void OnDisconnectPrepare()
-        {
-            try
-            {
-                if(!Map.Equals(null))
-                {
-                    using( OutPacket o = new OutPacket( STPK_DISCONNECT ) )
-                    {
-                        o.Write( nickName );
-                        SendToMap( o, true );
-                    }
+		public override void OnPacket( int protocolID, InPacket iPacket )
+		{
+			Console.WriteLine( "[{2}][{0}]{1}", protocolID, iPacket.ToString(), GUID );
+			TryCatch( () =>
+				{
+					switch( protocolID )
+					{
+						case CTPK_HELLO:
+							OnHello( iPacket );
+							break;
+						case CTPK_MOVE_MAP:
+							OnMoveMap( iPacket );
+							break;
+						case CTPK_DISCONNECT:
+							OnDisconnectPrepare();
+							break;
+						default:
+							Log.Warning( "Unknown Packet: {0}", protocolID );
+							break;
+					}
+				} );
+		}
 
-                    Map.RemoveClient( this );
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Exception( e );
-            }
-        }
+		private void OnDisconnectPrepare()
+		{
+			try
+			{
+				if( !CurMap.Equals( null ) )
+				{
+					using( OutPacket o = new OutPacket( STPK_MOVE_MAP ) )
+					{
+						o.Write( false );
+						o.Write( GUID );
+						SendToMap( o, true, CurMap );
+					}
 
-        public void SendToMap(OutPacket o, bool IncludeMe = false)
-        {
-            if(!Map.Equals(null))
-            {
-                foreach(var i in Map.GetClients())
-                {
-                    i.Send( o );
-                }
-            }
-        }
+					CurMap.RemoveClient( this );
+				}
+			}
+			catch( Exception e )
+			{
+				Log.Exception( e );
+			}
+		}
 
-        private void OnMoveMap(InPacket iPacket)
-        {
-            int MapIDX = iPacket.ReadInt();
-            OutPacket o = new OutPacket(STPK_MOVE_MAP);
-            
-            MapBase Map = MapBase.Maps[MapIDX];
+		public void SendToMap( OutPacket o, bool IncludeMe, MapBase Map )
+		{
+			List<Client> cs = Map.GetClients();
+			for( int i = 0; i < cs.Count; i++ )
+			{
+				Client target = cs[i];
+				if( target != null )
+				{
+					{
+						target.Send( o );
+					}
+				}
+			}
+		}
 
-            if(Map.MaxClient <= Map.NowClient)
-            {
-                o.Write(false); //입장 실패
-            }
-            else
-            {
-                o.Write(true);  //입장 성공
-                var Clients = Map.GetClients();
-                o.Write(Clients.Count);
+		private MapBase CurMap = null;
+		private void OnMoveMap( InPacket iPacket )
+		{
+			int MapIDX = iPacket.ReadInt();
+			OutPacket oa = new OutPacket(STPK_MOVE_MAP);
 
-                foreach (var i in Clients)
-                {
-                    o.Write(i.nickName);    //현재 맵에 있는 클라이언트들의 이름 전송.
-                }
-            }
-            Send(o);
-        }
+			MapBase Map = MapBase.Maps[MapIDX];
 
-        private void OnHello(InPacket iPacket)
-        {
-            string ID = iPacket.ReadString();
-            string PWD = iPacket.ReadString();
+			if( Map.MaxClient <= Map.NowClient )
+			{
+				oa.Write( true );    //나인가
+				oa.Write( false );   //입장실패
+			}
+			else
+			{
+				if( CurMap != null )
+				{
+					using( OutPacket o = new OutPacket( STPK_OUT_MAP ) )
+					{
+						o.Write( GUID );
+						lock( Map._lock )
+						{
+							SendToMap( o, false, CurMap );
+						}
+					}
+					CurMap.RemoveClient( this );
+				}
 
-            Log.Info("ID: {0} PWD: {1} GUID: {2}", ID, PWD, GUID);
+				CurMap = Map;
+				Map.AddClient( this );
 
-            //int accountIDX = Database.Database.Select<int>("accountDB", "userID = '{0}' AND userPWD = '{1}'", ID, PWD);
-            
-            OutPacket o = new OutPacket(STPK_HELLO);
+				oa.Write( true );  //입장 성공
+				oa.Write( true );
+				lock( Map._lock )
+				{
+					List<Client> Clients = Map.GetClients();
+					oa.Write( Clients.Count );
+					for( int i = 0; i < Clients.Count; i++ )
+					{
+						Client target = Clients[i];
+						if( target != null )
+						{
+							oa.Write( target.GUID );    //현재 맵에 있는 클라이언트들의 이름 전송.
+						}
+					}
+				}
+			}
+			Send( oa );
+		}
 
-            //if (accountIDX == -1)
-            //{
-            //    o.Write(false);
-            //    o.Write("Reason: ");
-            //}
-            //else
-            {
-                o.Write(true);
-                o.Write(GUID);
-            }
+		private void OnHello( InPacket iPacket )
+		{
+			string ID = iPacket.ReadString();
+			string PWD = iPacket.ReadString();
+			GUID = iPacket.ReadString();
+			Console.WriteLine( "ID: {0} PWD: {1} GUID: {2}", ID, PWD, GUID );
 
-            Send(o);
-        }
-    }
+			OutPacket o = new OutPacket(STPK_HELLO);
+			o.Write( true );
+
+			Send( o );
+		}
+	}
 }

@@ -1,200 +1,209 @@
-﻿using System;
-using Common.Network;
-using System.Threading;
+﻿using Common.IO;
+using System;
 using System.Net.Sockets;
+using System.Threading;
 
-namespace Common
+namespace Common.Network
 {
-    public abstract class Session : Protocol
-    {
-        public abstract void OnPacket(int protocolID, InPacket iPacket);
-        public abstract void OnDisconnect();
+	public abstract class Session : Protocol
+	{
+		public string GUID { get; protected set; }
+		public string IP { get; protected set; } = "0.0.0.0:0";
+		public Socket Socket { get; private set; }
 
-        public Socket Socket { get; protected set; }
-        public string GUID { get; protected set; }
-        public string IP { get; protected set; } = "0.0.0.0:0";
+		public abstract void OnDisconnect();
 
-        public byte[] mSharedBuffer = new byte[5000];
-        public byte[] mBuffer = new byte[5000];
+		public abstract void OnPacket( int protocolID, InPacket iPacket );
 
-        public int mOffset = 0;
-        private SocketAsyncEventArgs mWriteArgs;
-        public void SetSocket(Socket socket)
-        {
-            Socket = socket;
-            IP = Socket.RemoteEndPoint.ToString();
-            mWriteArgs = new SocketAsyncEventArgs();
-            mWriteArgs.DisconnectReuseSocket = false;
-            mWriteArgs.Completed += delegate (object s, SocketAsyncEventArgs a)
-            {
-                EndSend(a);
-            };
-        }
+		private byte[] mBuffer = new byte[5000];
+		private byte[] mSharedBuffer = new byte[5000];
+		private int mCursor = 0;
 
-        private void EndSend(SocketAsyncEventArgs a)
-        {
-            if (mDisconnected != 0)
-                return;
+		public int mDisconnected = 0;
 
-            TryCatch(() => 
-            {
-                if(a.BytesTransferred <= 0)
-                {
-                    if(a.SocketError != SocketError.Success)
-                    {
+		public void SetSocket( Socket socket )
+		{
+			Socket = socket;
+			IP = Socket.RemoteEndPoint.ToString();
+		}
 
-                    }
-                    Disconnect();
-                }
-                else
-                {
+		public void Disconnect()
+		{
+			if( Interlocked.CompareExchange( ref mDisconnected, 1, 0 ) == 0 )
+			{
+				OnDisconnect();
 
-                }
-            });
-        }
+				try
+				{
+					Socket.Shutdown( SocketShutdown.Both );
+					Socket.BeginDisconnect( true, new AsyncCallback( DisconnectCallBack ), Socket );
+				}
+				catch
+				{
 
-        public Session()
-        {
-            GUID = new Guid().ToString();
-        }
+				}
+			}
+		}
 
-        public void BeginReceive()
-        {
-            if(mDisconnected != 0 || !Socket.Connected)
-            {
-                Disconnect();
-                return;
-            }
+		public void TryCatch( Action action )
+		{
+			try
+			{
+				action.Invoke();
+			}
+			catch( Exception ex )
+			{
+				Log.Error( ex.ToString() );
+				Disconnect();
+			}
+		}
 
-            //Socket.BeginReceive(mBuffer, mOffset, 5000 + mOffset, SocketFlags.None, new AsyncCallback(EndReceive), Socket);
-            Socket.BeginReceive(mSharedBuffer, 0, 5000, SocketFlags.None, new AsyncCallback(EndReceive), Socket);
+		private void DisconnectCallBack( IAsyncResult ar )
+		{
+			Socket client = (Socket)ar.AsyncState;
+			client.EndDisconnect( ar );
+		}
 
-            //TryCatch(() =>
-            //{
-            //});
-        }
+		public void BeginReceive()
+		{
+			if( mDisconnected != 0 || !Socket.Connected )
+			{
+				Disconnect();
+				return;
+			}
+			try
+			{
+				Socket.BeginReceive( mSharedBuffer, 0, 5000, SocketFlags.None, new AsyncCallback( EndReceive ), Socket );
+			}
+			catch
+			{
+				Disconnect();
+			}
+		}
 
-        public void TryCatch(Action action)
-        {
-            try
-            {
-                action();
-            }
-            catch (Exception ex)
-            {
-                Log.Exception(ex, "GUID: {0}", GUID);
-                Disconnect();
-            }
-        }
+		public void Append( byte[] pBuffer, int pStart, int pLength )
+		{
+			try
+			{
+				if( mBuffer.Length - mCursor < pLength )
+				{
+					int newSize = mBuffer.Length * 2;
+					while( newSize < mCursor + pLength )
+					{
+						newSize *= 2;
+					}
+					Array.Resize( ref mBuffer, newSize );
+				}
+				Buffer.BlockCopy( pBuffer, pStart, mBuffer, mCursor, pLength );
+				mCursor += pLength;
+			}
+			catch
+			{
 
-        private volatile int mDisconnected = 0;
+			}
+		}
 
-        private void Disconnect()
-        {
-            if(mDisconnected == 0)
-            {
-                Interlocked.Increment(ref mDisconnected);   //For Thread Safe
+		/// <summary>
+		/// 패킷 규약
+		/// ---------
+		/// int ProtocolID
+		/// int size
+		/// ---------
+		/// data 시작.
+		/// </summary>
+		private void EndReceive( IAsyncResult ar )
+		{
+			if( mDisconnected != 0 )
+			{
+				return;
+			}
 
-                OnDisconnect();
-                Socket.Shutdown(SocketShutdown.Both);
-                Socket.Close();
-            }
-        }
+			try
+			{
+				int iLen = 0;
+				try
+				{
+					iLen = Socket.EndReceive( ar );
+				}
+				catch
+				{
+					Disconnect();
+					return;
+				}
 
-        /// <summary>
-        /// 패킷 규약
-        /// ---------
-        /// int ProtocolID
-        /// int size
-        /// ---------
-        /// data 시작.
-        /// </summary>
-        private void EndReceive(IAsyncResult ar)
-        {
-            if (mDisconnected != 0) return;
-            int iLen = 0;
-            try
-            {
-                iLen = Socket.EndReceive(ar);
-            }
-            catch (SocketException)
-            {
-                Disconnect();
-                return;
-            }
+				if( iLen <= 0 )
+				{
+					Disconnect();
+					return;
+				}
 
-            if (iLen < 0)
-            {
-                Disconnect();
-                return;
-            }
+				Append( mSharedBuffer, 0, iLen );
 
-            if (iLen == 0)
-            {
-                BeginReceive();
-                return;
-            }
+				while( true )
+				{
+					if( mCursor < 8 )
+					{
+						break;
+					}
 
-            Append(mSharedBuffer, 0, iLen);
+					int size = BitConverter.ToInt32(mBuffer, 4);
 
-            while(true)
-            {
-                if (mCursor < 7)
-                {
-                    break;
-                }
+					if( mCursor < size )
+					{
+						break;
+					}
 
-                BitConverter.ToInt32(mBuffer, 0);
-                int size = BitConverter.ToInt32(mBuffer, 4);
+					byte[] data = new byte[size];
+					Buffer.BlockCopy( mBuffer, 0, data, 0, size );
 
-                if (size > iLen)     //받은 데이터의 길이보다 패킷의 길이가 더 길면 뭔가 이상한거임
-                {
-                    //mOffset = iLen; //이전에 받은 데이터들에 이어서 받기 위해
-                    BeginReceive();
-                    return;
-                }
+					InPacket iPacket = new InPacket(data);
 
-                byte[] data = new byte[iLen];
-                Buffer.BlockCopy(mBuffer, 0, data, 0, size);
+					int protocolID = iPacket.ReadInt();
+					iPacket.ReadInt(); //사이즈 스킵(위에서 읽었음)
 
-                InPacket iPacket = new InPacket(data);
+					mCursor -= size;
 
-                mCursor -= size;
+					if( mCursor > 0 )
+					{
+						Buffer.BlockCopy( mBuffer, size, mBuffer, 0, mCursor );
+					}
 
-                int iProtocol = iPacket.ReadInt();
-                iPacket.ReadInt();//size pass
-                WorkerThread.AddQueue(() => OnPacket(iProtocol, iPacket));  //리시브랑 작업처리 스레드를 나눔
+					if( mDisconnected != 0 )
+					{
+						return;
+					}
+					//WorkerThread.AddQueue( () => { } ); //이거 안쓴게 성능이 더나옴.
+					OnPacket( protocolID, iPacket );
+				}
 
-            }
-            BeginReceive();
-        }
+				BeginReceive();
+			}
+			catch( Exception e )
+			{
+				AsyncStream.Write( "Exception.txt", e.ToString() );
 
-        public void Append(byte[] pBuffer) => Append(pBuffer, 0, pBuffer.Length);
-        
-        private int mCursor = 0;
+				Disconnect();
+			}
+		}
 
-        public void Append(byte[] pBuffer, int pStart, int pLength)
-        {
-            TryCatch( () => 
-            {
-                if (mBuffer.Length - mCursor < pLength)
-                {
-                    int newSize = mBuffer.Length * 2;
-                    while (newSize < mCursor + pLength) newSize *= 2;
-                    Array.Resize(ref mBuffer, newSize);
-                }
-                Buffer.BlockCopy(pBuffer, pStart, mBuffer, mCursor, pLength);
-                mCursor += pLength;
-            });
-        }
+		public void Send( OutPacket pPacket )
+		{
+			try
+			{
+				byte[] data = pPacket.ToArray();
 
-        public void Send(OutPacket oPacket)
-        {
-            if (mDisconnected != 0) return;
-
-            byte[] data = oPacket.ToArray();
-            Socket.Send(data);
-            oPacket.Dispose();
-        }
-    }
+				Socket.Send( data );
+			}
+			catch( SocketException )
+			{
+				OnDisconnect();
+			}
+			catch( Exception e )
+			{
+				AsyncStream.Write( "Exception.txt", e.ToString() );
+				Disconnect();
+				return;
+			}
+		}
+	}
 }

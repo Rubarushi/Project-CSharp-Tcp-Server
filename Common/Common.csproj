@@ -41,6 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IO\AsyncStream.cs" />
     <Compile Include="IO\Log.cs" />
     <Compile Include="Network\InPacket.cs" />
     <Compile Include="Network\OutPacket.cs" />
@@ -48,6 +49,9 @@
     <Compile Include="Session.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Thread\WorkerThread.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CommonDiagram.cd" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

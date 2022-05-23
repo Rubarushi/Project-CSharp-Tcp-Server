@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Server.Client">
+    <Position X="3.75" Y="2.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAAAAAAEAAAAAABQAAAAAAAAAgARAAAAAABAA=</HashCode>
+      <FileName>Client\Client.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Server.Server">
+    <Position X="3.75" Y="0.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAABAAAAAAAAAAAAAAAAIAAAABAAAAAA=</HashCode>
+      <FileName>Program.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Server.Database.Database">
+    <Position X="6.25" Y="4.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAEAAAAAAIBQAAEAAAAAQAACQAAAAAA=</HashCode>
+      <FileName>Database\Database.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Server.Map.MapBase">
+    <Position X="8.5" Y="0.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>ABAAAAAIAAAgAAAgAAAgAAQAAAAAAAAABAECgACAAAA=</HashCode>
+      <FileName>Map\MapBase.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Server.Network.Acceptor">
+    <Position X="3.75" Y="5.75" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAgAAAAAAQAAAAAAAiAIAAAAEAAAAA=</HashCode>
+      <FileName>Network\Acceptor.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Network.Session">
+    <Position X="6.25" Y="0.5" Width="1.75" />
+    <TypeIdentifier />
+  </Class>
+  <Font Name="맑은 고딕" Size="9" />
+</ClassDiagram>
